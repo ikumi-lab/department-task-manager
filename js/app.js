@@ -47,6 +47,9 @@ const els = {
   editPriority: $('#edit-priority'),
   editMemo: $('#edit-memo'),
   deleteButton: $('#delete-button'),
+  reminderTime: $('#reminder-time'),
+  calendarButton: $('#calendar-button'),
+  reminderHint: $('#reminder-hint'),
   cancelButton: $('#cancel-button'),
   toast: $('#toast'),
   toastMessage: $('#toast-message'),
@@ -319,7 +322,56 @@ function openEditor(id) {
   els.editMemo.value = task.memo || '';
   selectSegment(els.editCategory, task.category);
   selectSegment(els.editPriority, task.priority);
+  els.reminderTime.value = loadReminderTime();
+  updateReminderUI();
   els.dialog.showModal();
+}
+
+/* ===================================================================
+ *  通知（カレンダー登録）
+ * =================================================================== */
+const REMINDER_TIME_KEY = 'myTaskAssistant.reminderTime';
+
+/** 前回使った通知の時刻を覚えておく（なければ 9:00） */
+function loadReminderTime() {
+  try {
+    return localStorage.getItem(REMINDER_TIME_KEY) || '09:00';
+  } catch (error) {
+    return '09:00';
+  }
+}
+
+function saveReminderTime(time) {
+  try {
+    localStorage.setItem(REMINDER_TIME_KEY, time);
+  } catch (error) {
+    // 覚えられなくてもアプリは動くので何もしない
+  }
+}
+
+/** 期限が入っているかどうかで、ボタンと説明文を切り替える */
+function updateReminderUI() {
+  const due = els.editDue.value;
+  const time = els.reminderTime.value || '09:00';
+  els.calendarButton.disabled = !due;
+  if (!due) {
+    els.reminderHint.textContent = '期限を決めると、カレンダーに登録できます';
+  } else {
+    const [, m, d] = due.split('-').map(Number);
+    els.reminderHint.textContent = `${m}月${d}日 ${time} に通知が鳴ります（保存もされます）`;
+  }
+}
+
+/** 編集中の内容を集める */
+function collectEditorValues(task) {
+  return {
+    ...task,
+    title: els.editTitle.value.trim(),
+    category: els.editCategory.dataset.value,
+    due: els.editDue.value || null,
+    priority: els.editPriority.dataset.value,
+    memo: els.editMemo.value.trim(),
+  };
 }
 
 function closeEditor() {
@@ -398,6 +450,7 @@ function setupEvents() {
         none: '',
       };
       els.editDue.value = map[button.dataset.quick];
+      updateReminderUI();
     });
   });
 
@@ -405,18 +458,36 @@ function setupEvents() {
   els.editForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const task = state.tasks.find((t) => t.id === state.editingId);
-    const title = els.editTitle.value.trim();
-    if (!task || !title) return;
-    await saveTask({
-      ...task,
-      title,
-      category: els.editCategory.dataset.value,
-      due: els.editDue.value || null,
-      priority: els.editPriority.dataset.value,
-      memo: els.editMemo.value.trim(),
-    });
+    if (!task) return;
+    const updated = collectEditorValues(task);
+    if (!updated.title) return;
+    await saveTask(updated);
     closeEditor();
     showToast('保存しました');
+  });
+
+  // 編集画面：期限や時刻が変わったら、通知の説明を更新
+  els.editDue.addEventListener('input', updateReminderUI);
+  els.editDue.addEventListener('change', updateReminderUI);
+  els.reminderTime.addEventListener('input', updateReminderUI);
+  els.reminderTime.addEventListener('change', updateReminderUI);
+
+  // 編集画面：カレンダーに追加
+  // 画面がカレンダーに切り替わるので、先に編集内容を保存しておきます
+  els.calendarButton.addEventListener('click', async () => {
+    const task = state.tasks.find((t) => t.id === state.editingId);
+    if (!task) return;
+    const updated = collectEditorValues(task);
+    if (!updated.title) {
+      els.editTitle.focus();
+      return;
+    }
+    if (!updated.due) return;
+    const time = els.reminderTime.value || '09:00';
+    saveReminderTime(time);
+    await saveTask(updated);
+    closeEditor();
+    CalendarExport.open({ ...updated, time });
   });
 
   // 編集画面：削除

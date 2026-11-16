@@ -71,6 +71,16 @@
         <input id="edit-due" type="date">
       </div>
 
+      <!-- 期限の日に通知を鳴らすため、iPad のカレンダーに登録する -->
+      <div class="field">
+        <span class="field-label">通知（iPadのカレンダーに登録）</span>
+        <div class="reminder-row">
+          <input id="reminder-time" type="time" value="09:00" aria-label="通知の時刻">
+          <button type="button" id="calendar-button" class="btn btn-calendar">🔔 カレンダーに追加</button>
+        </div>
+        <p id="reminder-hint" class="field-hint"></p>
+      </div>
+
       <div class="field">
         <span class="field-label">優先順位</span>
         <div class="segmented" id="edit-priority">
@@ -102,6 +112,7 @@
 
   <!-- 読み込む順番が大切：先に保存担当、次に画面の動き -->
   <script src="js/storage.js"></script>
+  <script src="js/calendar.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

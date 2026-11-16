@@ -317,6 +317,34 @@ input, textarea {
 
 .quick-dates { padding: 0; }
 
+/* 通知（カレンダー登録） */
+.reminder-row {
+  display: flex;
+  gap: 8px;
+}
+
+.field .reminder-row input {
+  width: 160px;
+  flex-shrink: 0;
+}
+
+.btn-calendar {
+  flex: 1;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.btn-calendar:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+.field-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
 /* 2〜3択の切り替えボタン */
 .segmented {
   display: flex;
